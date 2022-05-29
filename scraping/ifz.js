@@ -1,9 +1,9 @@
-let puppeteer = require("puppeteer");
-let dayjs = require("dayjs");
-let utc = require("dayjs/plugin/utc");
-let timezone = require("dayjs/plugin/timezone");
-let updatelocale = require("dayjs/plugin/updateLocale");
-let customformatparser = require("dayjs/plugin/customParseFormat");
+import puppeteer from "puppeteer";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+import updatelocale from "dayjs/plugin/updateLocale.js";
+import customformatparser from "dayjs/plugin/customParseFormat.js";
 
 dayjs.extend(updatelocale);
 dayjs.extend(utc);
@@ -13,9 +13,9 @@ dayjs.updateLocale("en", {
 });
 dayjs.extend(customformatparser);
 
-async () => {
+let getWeekendEventList = async (req, res) => {
   console.log("inside async function");
-  let browser = await puppeteer.launch({ headless: false });
+  let browser = await puppeteer.launch();
   let page = await browser.newPage();
   await page.goto("https://ifz.me/");
 
@@ -84,6 +84,7 @@ async () => {
         console.log(eventinfo);
         return eventinfo;
       });
+
       event.time = eventinfo.time;
       event.artists = eventinfo.artists;
     }
@@ -96,11 +97,14 @@ async () => {
     monthlyeventlist,
     currentdate
   );
+  await browser.close();
   console.log(weekendeventlist);
+  res.status(200);
+  res.json(weekendeventlist);
 };
 
-(async () => {
-  let browser = await puppeteer.launch({ headless: false });
+let getAllWeekendEventList = async (req, res) => {
+  let browser = await puppeteer.launch();
   let page = await browser.newPage();
   await page.goto("https://ifz.me/");
   let eventlinks = await page.$$eval("a.event-teaser", (events) => {
@@ -149,19 +153,25 @@ async () => {
 
     alleventlist.push(event);
   }
+  await browser.close();
   console.log(alleventlist);
 
-  function getAllWeekendEventList(eventlist, date) {
+  function getAllWeekendEventList(eventlist, currentdate) {
     let clonemonthlylist = [...eventlist];
     let weekendeventlist = clonemonthlylist.filter((event) => {
       let date = dayjs(event.date, "YY-MM-DD").format("YYYY-MM-DD");
       let eventdate = dayjs.tz(date, "Europe/Berlin");
 
       let eventweekday = eventdate.get("day");
-      if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
-        event.weekday = eventdate.format("ddd");
-        event.date = eventdate.format("DD.MM.YY");
-        return true;
+      if (
+        eventdate.isAfter(currentdate, "week") ||
+        eventdate.isSame(currentdate, "week")
+      ) {
+        if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
+          event.weekday = eventdate.format("ddd");
+          event.date = eventdate.format("DD.MM.YY");
+          return true;
+        }
       }
     });
 
@@ -169,4 +179,8 @@ async () => {
   }
   let allweekendeventlist = getAllWeekendEventList(alleventlist, currentdate);
   console.log(allweekendeventlist);
-})();
+  res.status(200);
+  res.json(allweekendeventlist);
+};
+
+export { getWeekendEventList, getAllWeekendEventList };

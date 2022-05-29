@@ -1,9 +1,8 @@
-let puppeteer = require("puppeteer");
-let dayjs = require("dayjs");
-let utc = require("dayjs/plugin/utc");
-let timezone = require("dayjs/plugin/timezone");
-let updatelocale = require("dayjs/plugin/updateLocale");
-let customformatparser = require("dayjs/plugin/customParseFormat");
+import puppeteer from "puppeteer";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+import updatelocale from "dayjs/plugin/updateLocale.js";
 
 dayjs.extend(updatelocale);
 dayjs.extend(utc);
@@ -11,16 +10,15 @@ dayjs.extend(timezone);
 dayjs.updateLocale("en", {
   weekStart: "1",
 });
-dayjs.extend(customformatparser);
 
 
-(async () => {
-  let browser = await puppeteer.launch({ headless: false });
+let getWeekendEventList = async (req, res) => {
+  let browser = await puppeteer.launch();
   let page = await browser.newPage();
   await page.goto("https://neuewelt.club/wp/#dates");
   let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
   console.log(currentdate.format());
-  let year = currentdate.format("YY");
+  let year = currentdate.year();
 
   let alleventlist = await page.evaluate((year) => {
     let eventlist = [];
@@ -70,13 +68,12 @@ dayjs.extend(customformatparser);
 
   console.log(alleventlist);
 
-  async function getWeekendEventList(alleventlist, date) {
+  async function getWeekendEventList(alleventlist, currentdate) {
     let clonemonthlylist = [...alleventlist];
     let weekendeventlist = clonemonthlylist.filter((event) => {
-      let date = dayjs(event.date, "YY-MM-DD").format("YYYY-MM-DD");
-      let eventdate = dayjs.tz(date, "Europe/Berlin");
+      let eventdate = dayjs.tz(event.date, "Europe/Berlin");
 
-      if (date.isSame(eventdate, "week")) {
+      if (currentdate.isSame(eventdate, "week")) {
         let eventweekday = eventdate.get("day");
         if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
           event.weekday = eventdate.format("ddd");
@@ -94,9 +91,11 @@ dayjs.extend(customformatparser);
         let timeinfo = document.querySelector(
           "#postpost_frame .brz-rich-text p"
         ).innerText;
+        let index=timeinfo.indexOf("Doors:");
+        timeinfo=timeinfo.substr(index);
         let timearray = timeinfo.split("\n");
         timeinfo = timearray[0];
-        timearray = timinfo.split(":");
+        timearray = timeinfo.split(":");
         eventinfo.time = timearray[1].trim();
         return eventinfo;
       });
@@ -109,18 +108,19 @@ dayjs.extend(customformatparser);
   }
 
   let weekendeventlist = await getWeekendEventList(alleventlist, currentdate);
+  await browser.close();
   console.log(weekendeventlist);
-});
+  res.status(200);
+  res.json(weekendeventlist);
+};
 
-
-
-(async () => {
-  let browser = await puppeteer.launch({ headless: false });
+let getAllWeekendEventList = async (req, res) => {
+  let browser = await puppeteer.launch();
   let page = await browser.newPage();
   await page.goto("https://neuewelt.club/wp/#dates");
   let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
   console.log(currentdate.format());
-  let year = currentdate.format("YY");
+  let year = currentdate.year();
 
   let alleventlist = await page.evaluate((year) => {
     let eventlist = [];
@@ -167,29 +167,55 @@ dayjs.extend(customformatparser);
     }
     return eventlist;
   }, year);
+  console.log(alleventlist);
 
-  console.log(alleventlist)
-
-
-  function getAllWeekendEventList(eventlist, date) {
+  async function getAllWeekendEventList(eventlist, currentdate) {
     let clonemonthlylist = [...eventlist];
     let weekendeventlist = clonemonthlylist.filter((event) => {
       console.log(event.date);
-      let date = dayjs(event.date, "YY-MM-DD").format("YYYY-MM-DD");
-      let eventdate = dayjs.tz(date, "Europe/Berlin");
+      let eventdate = dayjs.tz(event.date, "Europe/Berlin");
 
       let eventweekday = eventdate.get("day");
-      if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
-        event.weekday = eventdate.format("ddd");
-        event.date = eventdate.format("DD.MM.YY");
-        return true;
+      if (
+        eventdate.isAfter(currentdate, "week") ||
+        eventdate.isSame(currentdate, "week")
+      ) {
+        if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
+          event.weekday = eventdate.format("ddd");
+          event.date = eventdate.format("DD.MM.YY");
+          return true;
+        }
       }
     });
 
+    for (let event of weekendeventlist) {
+      await page.goto(event.link);
+      let eventinfo = await page.evaluate(() => {
+        let eventinfo = {};
+        let timeinfo = document.querySelector(
+          "#postpost_frame .brz-rich-text p"
+        ).innerText;
+        let index=timeinfo.indexOf("Doors:");
+        timeinfo=timeinfo.substr(index);
+        let timearray = timeinfo.split("\n");
+        timeinfo = timearray[0];
+        timearray = timeinfo.split(":");
+        eventinfo.time = timearray[1].trim();
+        return eventinfo;
+      });
+      console.log(eventinfo);
+      event.time = eventinfo.time;
+    }
+
     return weekendeventlist;
   }
-  let allweekendeventlist = getAllWeekendEventList(alleventlist, currentdate);
+  let allweekendeventlist = await getAllWeekendEventList(
+    alleventlist,
+    currentdate
+  );
   console.log(allweekendeventlist);
+  res.status(200);
+  res.json(allweekendeventlist);
+};
 
-}
-  )();
+export { getWeekendEventList, getAllWeekendEventList };
