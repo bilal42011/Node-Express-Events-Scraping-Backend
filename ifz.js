@@ -3,6 +3,7 @@ let dayjs = require("dayjs");
 let utc = require("dayjs/plugin/utc");
 let timezone = require("dayjs/plugin/timezone");
 let updatelocale = require("dayjs/plugin/updateLocale");
+let customformatparser = require("dayjs/plugin/customParseFormat");
 
 dayjs.extend(updatelocale);
 dayjs.extend(utc);
@@ -10,6 +11,7 @@ dayjs.extend(timezone);
 dayjs.updateLocale("en", {
   weekStart: "1",
 });
+dayjs.extend(customformatparser);
 
 async () => {
   console.log("inside async function");
@@ -112,7 +114,7 @@ async () => {
   console.log(eventlinks.length);
   let alleventlist = [];
   let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
-  let year = currentdate.year();
+  let year = currentdate.format("YY");
 
   for (let eventlink of eventlinks) {
     await page.goto(eventlink);
@@ -152,7 +154,8 @@ async () => {
   function getAllWeekendEventList(eventlist, date) {
     let clonemonthlylist = [...eventlist];
     let weekendeventlist = clonemonthlylist.filter((event) => {
-      let eventdate = dayjs.tz(event.date, "Europe/Berlin");
+      let date = dayjs(event.date, "YY-MM-DD").format("YYYY-MM-DD");
+      let eventdate = dayjs.tz(date, "Europe/Berlin");
 
       let eventweekday = eventdate.get("day");
       if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
@@ -166,5 +169,4 @@ async () => {
   }
   let allweekendeventlist = getAllWeekendEventList(alleventlist, currentdate);
   console.log(allweekendeventlist);
-  console.log(alleventlist);
 })();

@@ -3,6 +3,7 @@ let dayjs = require("dayjs");
 let utc = require("dayjs/plugin/utc");
 let timezone = require("dayjs/plugin/timezone");
 let updatelocale = require("dayjs/plugin/updateLocale");
+let customformatparser = require("dayjs/plugin/customParseFormat");
 
 dayjs.extend(updatelocale);
 dayjs.extend(utc);
@@ -10,8 +11,9 @@ dayjs.extend(timezone);
 dayjs.updateLocale("en", {
   weekStart: "1",
 });
+dayjs.extend(customformatparser);
 
-(async () => {
+async () => {
   let browser = await puppeteer.launch({ headless: false });
   let page = await browser.newPage();
   await page.goto("https://www.distillery.de/ex/dates");
@@ -97,4 +99,73 @@ dayjs.updateLocale("en", {
     currentdate
   );
   console.log(weekendeventlist);
+};
+
+(async () => {
+  let browser = await puppeteer.launch({ headless: false });
+  let page = await browser.newPage();
+  await page.goto("https://www.distillery.de/ex/dates");
+  let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
+
+  let eventlinks = await page.$$eval("h1.big a ", (events) => {
+    let eventlinks = [];
+    for (let event of events) {
+      eventlinks.push(event.href);
+    }
+    return eventlinks;
+  });
+
+  console.log(eventlinks.length);
+  let alleventlist = [];
+
+  for (let eventlink of eventlinks) {
+    await page.goto(eventlink);
+    let event = await page.$eval("h1.big a", (event) => {
+      let heading = event.parentElement;
+      let headingsibling = heading.nextSibling;
+      let artists = headingsibling.querySelectorAll("font.act_title");
+
+      let eventobj = {};
+      let text = event.querySelector(".events_link").innerText;
+      let textarray = text.split(" ");
+      let datearray = textarray[1].split(".");
+      console.log(datearray);
+      eventobj.date = `${datearray[2]}-${datearray[1]}-${datearray[0]}`;
+      textarray.splice(0, 2);
+      eventobj.title = textarray.join(" ");
+      eventobj.artists = [];
+
+      for (artist of artists) {
+        eventobj.artists.push(artist.innerText);
+      }
+
+      heading = heading.nextSibling.nextSibling.nextSibling.textContent;
+      eventobj.time = heading.split(" ")[1];
+
+      return eventobj;
+    });
+
+    alleventlist.push(event);
+  }
+  console.log(alleventlist);
+
+  function getAllWeekendEventList(eventlist, date) {
+    let clonemonthlylist = [...eventlist];
+    let weekendeventlist = clonemonthlylist.filter((event) => {
+      console.log(event.date);
+      let date = dayjs(event.date, "YY-MM-DD").format("YYYY-MM-DD");
+      let eventdate = dayjs.tz(date, "Europe/Berlin");
+
+      let eventweekday = eventdate.get("day");
+      if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
+        event.weekday = eventdate.format("ddd");
+        event.date = eventdate.format("DD.MM.YY");
+        return true;
+      }
+    });
+
+    return weekendeventlist;
+  }
+  let allweekendeventlist = getAllWeekendEventList(alleventlist, currentdate);
+  console.log(allweekendeventlist);
 })();
