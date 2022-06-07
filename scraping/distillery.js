@@ -4,6 +4,7 @@ import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import updatelocale from "dayjs/plugin/updateLocale.js";
 import customformatparser from "dayjs/plugin/customParseFormat.js";
+import {v4 as uuidv4} from "uuid";
 
 dayjs.extend(updatelocale);
 dayjs.extend(utc);
@@ -16,6 +17,7 @@ dayjs.extend(customformatparser);
 let getWeekendEventList = async (req, res) => {
   let browser = await puppeteer.launch();
   let page = await browser.newPage();
+await page.setDefaultNavigationTimeout(0);
   await page.goto("https://www.distillery.de/ex/dates");
   let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
   console.log(currentdate.format());
@@ -69,6 +71,8 @@ let getWeekendEventList = async (req, res) => {
         if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
           event.weekday = eventdate.format("ddd");
           event.date = eventdate.format("DD.MM.YY");
+          event.location="distillery";
+          event.id=uuidv4();
           return true;
         }
       }
@@ -108,6 +112,7 @@ let getWeekendEventList = async (req, res) => {
 let getAllWeekendEventList = async (req, res) => {
   let browser = await puppeteer.launch();
   let page = await browser.newPage();
+  await page.setDefaultNavigationTimeout(0);
   await page.goto("https://www.distillery.de/ex/dates");
   let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
 
@@ -169,6 +174,8 @@ let getAllWeekendEventList = async (req, res) => {
         if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
           event.weekday = eventdate.format("ddd");
           event.date = eventdate.format("DD.MM.YY");
+          event.location="distillery";
+          event.id=uuidv4();
           return true;
         }
       }

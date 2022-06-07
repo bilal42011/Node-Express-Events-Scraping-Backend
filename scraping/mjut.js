@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import updatelocale from "dayjs/plugin/updateLocale.js";
+import {v4 as uuidv4} from "uuid";
 
 dayjs.extend(updatelocale);
 dayjs.extend(utc);
@@ -16,6 +17,7 @@ let getWeekendEventList = async (req, res) => {
   console.log("inside async function");
   let browser = await puppeteer.launch();
   let page = await browser.newPage();
+  await page.setDefaultNavigationTimeout(0);
   await page.goto("https://mjut.me/");
 
   let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
@@ -78,6 +80,9 @@ let getWeekendEventList = async (req, res) => {
           }
           eventlist.push(currentevent);
           programitem = programitem.nextElementSibling;
+          if(!programitem){
+            break;
+          }
         } while (!programitem.children[0].classList.contains("program-month"));
       }
       console.log(eventlist);
@@ -99,6 +104,8 @@ let getWeekendEventList = async (req, res) => {
           event.weekday = eventdate.format("ddd");
           event.time = eventdate.format("HH:mm");
           event.date = eventdate.format("DD.MM.YY");
+          event.location="mjut";
+          event.id=uuidv4();
           return true;
         }
       }
@@ -116,6 +123,7 @@ let getWeekendEventList = async (req, res) => {
 let getAllWeekendEventList = async (req, res) => {
   let browser = await puppeteer.launch();
   let page = await browser.newPage();
+  await page.setDefaultNavigationTimeout(0);
   await page.goto("https://mjut.me/");
   let currentdate = dayjs.tz(dayjs(), "Europe/Berlin");
   let year = currentdate.year();
@@ -207,6 +215,9 @@ let getAllWeekendEventList = async (req, res) => {
         if (eventweekday == 0 || eventweekday == 6 || eventweekday == 5) {
           event.weekday = eventdate.format("ddd");
           event.date = eventdate.format("DD.MM.YY");
+          event.time = eventdate.format("HH:mm");
+          event.location="mjut";
+          event.id=uuidv4();
           return true;
         }
       }

@@ -1,9 +1,10 @@
-let puppeteer = require("puppeteer");
-let dayjs = require("dayjs");
-let utc = require("dayjs/plugin/utc");
-let timezone = require("dayjs/plugin/timezone");
-let updatelocale = require("dayjs/plugin/updateLocale");
-let customformatparser = require("dayjs/plugin/customParseFormat");
+import puppeteer from "puppeteer";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+import updatelocale from "dayjs/plugin/updateLocale.js";
+import customformatparser from "dayjs/plugin/customParseFormat.js";
+
 
 dayjs.extend(updatelocale);
 dayjs.extend(utc);
@@ -24,10 +25,14 @@ async () => {
     console.log(date);
   }
 };
-let newdate = "12-05-22";
-let date = dayjs(newdate, "DD-MM-YY");
-console.log(date.format("YYYY-MM-DD"));
-console.log(date.get("month"));
-console.log(date.get("day"));
-console.log(date.get("year"));
-console.log(date.format("DD.MM.YY"));
+// let newdate = "12-05-22";
+// let date = dayjs(newdate, "DD-MM-YY");
+// console.log(date.format("YYYY-MM-DD"));
+// console.log(date.get("month"));
+// console.log(date.get("day"));
+// console.log(date.get("year"));
+// console.log(date.format("DD.MM.YY"));
+
+let newdate=dayjs("2022-06-05");
+let date=dayjs();
+console.log(date.isSame(newdate,"month"));
